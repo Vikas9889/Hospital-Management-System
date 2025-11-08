@@ -1,0 +1,87 @@
+version: "3.9"
+services:
+  postgres-users:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hms
+      POSTGRES_PASSWORD: hms123
+      POSTGRES_DB: users_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - users_pgdata:/var/lib/postgresql/data
+      - ./user-service/migrations:/docker-entrypoint-initdb.d
+
+  postgres-appointments:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hms
+      POSTGRES_PASSWORD: hms123
+      POSTGRES_DB: appointments_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - appointments_pgdata:/var/lib/postgresql/data
+      - ./appointment-service/migrations:/docker-entrypoint-initdb.d
+
+  postgres-billing:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hms
+      POSTGRES_PASSWORD: hms123
+      POSTGRES_DB: billing_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - billing_pgdata:/var/lib/postgresql/data
+      - ./billing-service/migrations:/docker-entrypoint-initdb.d
+
+  user-service:
+    build: ./user-service
+    environment:
+      - PORT=8081
+      - DATABASE_URL=postgres://hms:hms123@postgres-users:5432/users_db?sslmode=disable
+    depends_on:
+      - postgres-users
+    ports:
+      - "8081:8081"
+
+  appointment-service:
+    build: ./appointment-service
+    environment:
+      - PORT=8082
+      - DATABASE_URL=postgres://hms:hms123@postgres-appointments:5432/appointments_db?sslmode=disable
+      - USER_SERVICE_URL=http://user-service:8081
+    depends_on:
+      - postgres-appointments
+      - user-service
+    ports:
+      - "8082:8082"
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      - PORT=8084
+    ports:
+      - "8084:8084"
+
+  billing-service:
+    build: ./billing-service
+    environment:
+      - PORT=8083
+      - DATABASE_URL=postgres://hms:hms123@postgres-billing:5432/billing_db?sslmode=disable
+      - APPOINTMENT_SERVICE_URL=http://appointment-service:8082
+      - USER_SERVICE_URL=http://user-service:8081
+      - NOTIFICATION_URL=http://notification-service:8084
+    depends_on:
+      - postgres-billing
+      - appointment-service
+      - user-service
+      - notification-service
+    ports:
+      - "8083:8083"
+
+volumes:
+  users_pgdata:
+  appointments_pgdata:
+  billing_pgdata:
