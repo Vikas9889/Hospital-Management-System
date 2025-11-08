@@ -1,0 +1,21 @@
+package config
+
+import (
+    //"log"
+    "os"
+
+    "github.com/joho/godotenv"
+)
+
+type Config struct {
+    Port string
+}
+
+func Load() *Config {
+    _ = godotenv.Load()
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8084"
+    }
+    return &Config{Port: port}
+}
