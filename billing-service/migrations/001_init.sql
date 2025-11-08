@@ -1,13 +1,14 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
-CREATE TABLE IF NOT EXISTS appointments (
-    id SERIAL PRIMARY KEY,
-    patient_id VARCHAR(50) NOT NULL,
-    doctor_id VARCHAR(50) NOT NULL,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED',
-    reschedule_count INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS bills (
+    bill_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    appointment_id UUID NOT NULL,
+    patient_id UUID NOT NULL,
+    doctor_id UUID NOT NULL,
+    amount NUMERIC(10,2) NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING',
+    paid_at TIMESTAMP NULL,             -- ✅ this line is missing in your DB
+    created_at TIMESTAMP DEFAULT NOW()
 );
+
 

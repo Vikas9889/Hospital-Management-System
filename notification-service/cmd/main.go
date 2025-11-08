@@ -1,27 +1,47 @@
 package main
 
 import (
-    "log"
-    "notification-service/internal/config"
-    "notification-service/internal/handler"
+	"log"
+	"net/http"
+	"os"
 
-    "github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-    cfg := config.Load()
-    r := gin.Default()
-    r.Use(gin.Logger())
-    r.Use(gin.Recovery())
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8084"
+	}
 
-    h := handler.NewNotificationHandler()
+	r := gin.Default()
 
-    api := r.Group("/v1")
-    {
-        api.POST("/notify", h.Notify)
-        api.POST("/notify/test", h.Test)
-    }
+	// Group all APIs under /v1
+	api := r.Group("/v1")
+	{
+		api.GET("/notify/test", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{
+				"status":  "ok",
+				"message": "Notification service is live 🚀",
+			})
+		})
 
-    log.Printf("Notification Service running on port %s", cfg.Port)
-    r.Run(":" + cfg.Port)
+		api.POST("/notify", func(c *gin.Context) {
+			var payload struct {
+				Email   string `json:"email"`
+				Subject string `json:"subject"`
+				Body    string `json:"body"`
+			}
+			if err := c.ShouldBindJSON(&payload); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			// Mock sending notification
+			log.Printf("📧 Notification sent to %s | %s: %s", payload.Email, payload.Subject, payload.Body)
+			c.JSON(http.StatusOK, gin.H{"status": "sent", "to": payload.Email})
+		})
+	}
+
+	log.Printf("🚀 Notification Service running on port %s", port)
+	r.Run(":" + port)
 }
