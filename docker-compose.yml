@@ -1,5 +1,4 @@
-version: "3.9"
-services:
+﻿services:
   postgres-users:
     image: postgres:15
     environment:
@@ -9,8 +8,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - users_pgdata:/var/lib/postgresql/data
-      - ./user-service/migrations:/docker-entrypoint-initdb.d
+      - "users_pgdata:/var/lib/postgresql/data"
+      - type: bind
+        source: ./user-service/migrations
+        target: /docker-entrypoint-initdb.d
 
   postgres-appointments:
     image: postgres:15
@@ -21,8 +22,10 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - appointments_pgdata:/var/lib/postgresql/data
-      - ./appointment-service/migrations:/docker-entrypoint-initdb.d
+      - "appointments_pgdata:/var/lib/postgresql/data"
+      - type: bind
+        source: ./appointment-service/migrations
+        target: /docker-entrypoint-initdb.d
 
   postgres-billing:
     image: postgres:15
@@ -33,8 +36,24 @@ services:
     ports:
       - "5434:5432"
     volumes:
-      - billing_pgdata:/var/lib/postgresql/data
-      - ./billing-service/migrations:/docker-entrypoint-initdb.d
+      - "billing_pgdata:/var/lib/postgresql/data"
+      - type: bind
+        source: ./billing-service/migrations
+        target: /docker-entrypoint-initdb.d
+
+  postgres-doctors:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: hms
+      POSTGRES_PASSWORD: hms123
+      POSTGRES_DB: doctors_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - "doctors_pgdata:/var/lib/postgresql/data"
+      - type: bind
+        source: ./doctor-service/migrations
+        target: /docker-entrypoint-initdb.d
 
   user-service:
     build: ./user-service
@@ -52,18 +71,13 @@ services:
       - PORT=8082
       - DATABASE_URL=postgres://hms:hms123@postgres-appointments:5432/appointments_db?sslmode=disable
       - USER_SERVICE_URL=http://user-service:8081
+      - DOCTOR_SERVICE_URL=http://doctor-service:8085
     depends_on:
       - postgres-appointments
       - user-service
+      - doctor-service
     ports:
       - "8082:8082"
-
-  notification-service:
-    build: ./notification-service
-    environment:
-      - PORT=8084
-    ports:
-      - "8084:8084"
 
   billing-service:
     build: ./billing-service
@@ -81,7 +95,45 @@ services:
     ports:
       - "8083:8083"
 
+  notification-service:
+    build: ./notification-service
+    environment:
+      - PORT=8084
+    ports:
+      - "8084:8084"
+
+  doctor-service:
+    build: ./doctor-service
+    environment:
+      - PORT=8085
+      - DATABASE_URL=postgres://hms:hms123@postgres-doctors:5432/doctors_db?sslmode=disable
+    depends_on:
+      - postgres-doctors
+    ports:
+      - "8085:8085"
+
+  prescription-service:
+    build: ./prescription-service
+    environment:
+      - PORT=8087
+      - DATABASE_URL=postgres://hms:hms123@postgres-appointments:5432/appointments_db?sslmode=disable
+    depends_on:
+      - postgres-appointments
+    ports:
+      - "8087:8087"
+
+  payment-service:
+    build: ./payment-service
+    environment:
+      - PORT=8088
+      - DATABASE_URL=postgres://hms:hms123@postgres-billing:5432/billing_db?sslmode=disable
+    depends_on:
+      - postgres-billing
+    ports:
+      - "8088:8088"
+
 volumes:
   users_pgdata:
   appointments_pgdata:
   billing_pgdata:
+  doctors_pgdata:

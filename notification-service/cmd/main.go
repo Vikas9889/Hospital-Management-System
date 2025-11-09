@@ -15,7 +15,10 @@ func main() {
 	}
 
 	r := gin.Default()
-
+    // Add this health endpoint for readiness/liveness probes
+    r.GET("/health", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "ok"})
+    })
 	// Group all APIs under /v1
 	api := r.Group("/v1")
 	{

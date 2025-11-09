@@ -1,34 +1,28 @@
 package config
 
 import (
-    "log"
-    "os"
-
-    "github.com/joho/godotenv"
+	"log"
+	"os"
 )
 
 type Config struct {
-    Port           string
-    DatabaseURL    string
-    UserServiceURL string
+	Port             string
+	DatabaseURL      string
+	UserServiceURL   string
+	DoctorServiceURL string
 }
 
 func Load() *Config {
-    _ = godotenv.Load()
+	cfg := &Config{
+		Port:             os.Getenv("PORT"),
+		DatabaseURL:      os.Getenv("DATABASE_URL"),
+		UserServiceURL:   os.Getenv("USER_SERVICE_URL"),
+		DoctorServiceURL: os.Getenv("DOCTOR_SERVICE_URL"),
+	}
 
-    cfg := &Config{
-        Port:           getEnv("PORT", "8082"),
-        DatabaseURL:    getEnv("DATABASE_URL", "postgres://postgres:postgres@postgres-appointments:5432/appointments_db?sslmode=disable"),
-        UserServiceURL: getEnv("USER_SERVICE_URL", "http://user-service:8081"),
-    }
+	if cfg.Port == "" || cfg.DatabaseURL == "" {
+		log.Fatal("missing required environment variables")
+	}
 
-    log.Println("Config loaded:", cfg)
-    return cfg
-}
-
-func getEnv(key, fallback string) string {
-    if value, exists := os.LookupEnv(key); exists {
-        return value
-    }
-    return fallback
+	return cfg
 }

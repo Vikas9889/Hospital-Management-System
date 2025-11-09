@@ -20,7 +20,10 @@ func main() {
     r := gin.Default()
     r.Use(gin.Logger())
     r.Use(gin.Recovery())
-
+    // Add this health endpoint for readiness/liveness probes
+    r.GET("/health", func(c *gin.Context) {
+        c.JSON(200, gin.H{"status": "ok"})
+    })
     api := r.Group("/v1")
     {
         api.GET("/users", userHandler.GetAll)
